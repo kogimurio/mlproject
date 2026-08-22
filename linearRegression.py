@@ -48,4 +48,53 @@ print(training_df.corr(numeric_only=True))
 
 # View pairplot
 fig = px.scatter_matrix(training_df, dimensions=["FARE", "TRIP_MILES", "TRIP_SECONDS"])
-fig.show()
+# fig.show()
+
+# Train Model
+def create_model(
+    settings: ml_edu.experiment.ExperimentSettings,
+    metrics: list[keras.metrics.Metric],
+) -> keras.Model:
+    """Create and compile a simple linear regression model."""
+    # Describe the topography of the model
+    # The topography of a simple linear regression model
+    # is a single node in a single layer.
+    inputs = {name: keras.Input(shape=(1,), name=name) for name in settings.input_features}
+    concatenated_inputs = keras.layers.concatenate()(list(inputs.values()))
+    outputs = keras.layers.Dense(units=1)(concatenated_inputs)
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    
+    # Compile the model topography into code that Keras can efficiently
+    # execute. Configure training to minimize the model's mean squared error.
+    model.compile(
+        optimizer=keras.optimizers.RMSprop(learning_rate=settings.learning_rate),
+        loss="mean_squared_error",
+        metrics=metrics
+        )
+    return model
+def train_model(
+    experiment_name: str,
+    model: keras.Model,
+    dataset: pd.DataFrame,
+    label_name: str,
+    settings: ml_edu.experiment.ExperimentSettings,
+    ) -> ml_edu.experiment.Experiment:
+    """Train the model by feeding it data"""
+    features = {name: dataset[name].values for name in settings.input_features}
+    label = dataset[label_name].values
+    history = model.fit(
+        x=features,
+        y=label,
+        batch_size=settings.batch_size,
+        epochs=settings.number_epochs
+        )
+    return ml_edu.experiment.Experiment(
+        name=experiment_name,
+        settings=settings,
+        model=model,
+        epochs=history.epoch,
+        metrics_history=pd.DataFrame(history=history),
+    )
+    
+print("SUCCESS: defining linear regression function complete")
+    
