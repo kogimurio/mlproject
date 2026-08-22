@@ -9,6 +9,7 @@ import ml_edu.results
 
 # data visualization
 import plotly.express as px
+import plotly.io as pio
 
 chicago_taxi_dataframe = pd.read_csv("https://download.mlcc.google.com/mledu-datasets/chicago_taxi_train.csv")
 
@@ -51,6 +52,7 @@ fig = px.scatter_matrix(training_df, dimensions=["FARE", "TRIP_MILES", "TRIP_SEC
 # fig.show()
 
 # Train Model
+# Define ML functions
 def create_model(
     settings: ml_edu.experiment.ExperimentSettings,
     metrics: list[keras.metrics.Metric],
@@ -60,7 +62,7 @@ def create_model(
     # The topography of a simple linear regression model
     # is a single node in a single layer.
     inputs = {name: keras.Input(shape=(1,), name=name) for name in settings.input_features}
-    concatenated_inputs = keras.layers.concatenate()(list(inputs.values()))
+    concatenated_inputs = keras.layers.Concatenate()(list(inputs.values()))
     outputs = keras.layers.Dense(units=1)(concatenated_inputs)
     model = keras.Model(inputs=inputs, outputs=outputs)
     
@@ -93,8 +95,24 @@ def train_model(
         settings=settings,
         model=model,
         epochs=history.epoch,
-        metrics_history=pd.DataFrame(history=history),
+        metrics_history=pd.DataFrame(history.history),
     )
-    
-print("SUCCESS: defining linear regression function complete")
-    
+   
+# Experiment 1 
+settings_1 = ml_edu.experiment.ExperimentSettings(
+    learning_rate=0.001,
+    number_epochs=20,
+    batch_size=50,
+    input_features=['TRIP_MILES']
+)
+
+metrics = [keras.metrics.RootMeanSquaredError(name='rmse')]
+
+model_1 = create_model(settings_1, metrics)
+
+experiment_1 = train_model('one_feature', model_1, training_df, 'FARE', settings_1)
+
+pio.renderers.default = 'browser'
+ml_edu.results.plot_experiment_metrics(experiment_1, ['rmse'])
+ml_edu.results.plot_model_predictions(experiment_1, training_df, 'FARE')
+  
